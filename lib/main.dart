@@ -1,4 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
@@ -9,7 +11,10 @@ const request =
 void main() async {
   runApp(MaterialApp(
     home: Home(),
-    theme: ThemeData(hintColor: Colors.amber, primaryColor: Colors.amber),
+    theme: ThemeData(
+        hintColor: Colors.amber,
+        primaryColor: Colors.amber,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.amber)),
   ));
 }
 
@@ -24,47 +29,85 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final dolarController = TextEditingController();
-  final euroController = TextEditingController();
-  final realController = TextEditingController();
+  final moeda1Controller = TextEditingController();
+  final moeda2Controller = TextEditingController();
+  final nomeMoeda1Controller = TextEditingController();
+  final nomeMoeda2Controller = TextEditingController();
 
-  double dolar = 0;
-  double euro = 0;
+  final List<String> valores = [
+    "BRL",
+    "USD",
+    "EUR",
+    "JPY",
+    "GBP",
+    "ARS",
+    "CAD",
+    "AUD",
+    "CNY",
+    "BTC"
+  ];
 
-  void _realChange(String text) {
-    if (text.isEmpty) {
-      _clearAll();
-      return;
+  double moeda1 = 1.00;
+  double moeda2 = 0;
+
+  String nomeMoeda1 = "BRL";
+  String nomeMoeda2 = "USD";
+
+  Map<String, dynamic> list = Map<String, dynamic>();
+
+  void _nomeMoeda1Change(String value) {
+    if (value == nomeMoeda2) {
+      String nomeAux = nomeMoeda1;
+      nomeMoeda1 = "";
+      _nomeMoeda2Change(nomeAux);
+      nomeMoeda2Controller.text = nomeAux;
     }
-    double real = double.parse(text);
-    dolarController.text = (real / dolar).toStringAsFixed(2);
-    euroController.text = (real / euro).toStringAsFixed(2);
+    nomeMoeda1 = value;
+    if (nomeMoeda1 == "BRL") {
+      moeda1 = 1.00;
+    } else {
+      moeda1 = list[nomeMoeda1]["buy"];
+    }
+    _moeda1Change(moeda1Controller.text);
   }
 
-  void _dolarChange(String text) {
-    if (text.isEmpty) {
-      _clearAll();
-      return;
+  void _nomeMoeda2Change(String value) {
+    if (value == nomeMoeda1) {
+      String nomeAux = nomeMoeda2;
+      nomeMoeda2 = "";
+      _nomeMoeda1Change(nomeAux);
+      nomeMoeda1Controller.text = nomeAux;
     }
-    double dolar = double.parse(text);
-    realController.text = (dolar * this.dolar).toStringAsFixed(2);
-    euroController.text = (dolar * this.dolar / euro).toStringAsFixed(2);
+    nomeMoeda2 = value;
+    if (nomeMoeda2 == "BRL") {
+      moeda2 = 1.00;
+    } else {
+      moeda2 = list[nomeMoeda2]["buy"];
+    }
+    _moeda2Change(moeda2Controller.text);
   }
 
-  void _euroChange(String text) {
+  void _moeda1Change(String text) {
     if (text.isEmpty) {
       _clearAll();
       return;
     }
-    double euro = double.parse(text);
-    realController.text = (euro * this.euro).toStringAsFixed(2);
-    dolarController.text = (euro * this.euro / dolar).toStringAsFixed(2);
+    double moeda1 = double.parse(text);
+    moeda2Controller.text = (moeda1 * this.moeda1 / moeda2).toStringAsFixed(2);
+  }
+
+  void _moeda2Change(String text) {
+    if (text.isEmpty) {
+      _clearAll();
+      return;
+    }
+    double moeda2 = double.parse(text);
+    moeda1Controller.text = (moeda2 * this.moeda2 / moeda1).toStringAsFixed(2);
   }
 
   void _clearAll() {
-    realController.text = "";
-    dolarController.text = "";
-    euroController.text = "";
+    moeda1Controller.text = "";
+    moeda2Controller.text = "";
   }
 
   @override
@@ -97,10 +140,8 @@ class _HomeState extends State<Home> {
                       textAlign: TextAlign.center,
                     ));
                   } else {
-                    dolar =
-                        snapshot.data!["results"]["currencies"]["USD"]["buy"];
-                    euro =
-                        snapshot.data!["results"]["currencies"]["EUR"]["buy"];
+                    list = snapshot.data!["results"]["currencies"];
+                    moeda2 = list[nomeMoeda2]["buy"];
 
                     return SingleChildScrollView(
                       padding: const EdgeInsets.all(10.0),
@@ -109,14 +150,30 @@ class _HomeState extends State<Home> {
                         children: <Widget>[
                           const Icon(Icons.monetization_on,
                               size: 150.0, color: Colors.amber),
-                          buildTextFormField(
-                              "Reais", "R\$", realController, _realChange),
+                          Row(children: [
+                            Padding(
+                              padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
+                              child: buildSelectFormField(valores, 0,
+                                  _nomeMoeda1Change, nomeMoeda1Controller),
+                            ),
+                            Expanded(
+                              child: buildTextFormField(
+                                  moeda1Controller, _moeda1Change),
+                            ),
+                          ]),
                           const Divider(),
-                          buildTextFormField(
-                              "Dólar", "US\$", dolarController, _dolarChange),
-                          const Divider(),
-                          buildTextFormField(
-                              "Euro", "EUR", euroController, _euroChange),
+                          Row(
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
+                                child: buildSelectFormField(valores, 1,
+                                    _nomeMoeda2Change, nomeMoeda2Controller),
+                              ),
+                              Expanded(
+                                  child: buildTextFormField(
+                                      moeda2Controller, _moeda2Change)),
+                            ],
+                          )
                         ],
                       ),
                     );
@@ -125,18 +182,39 @@ class _HomeState extends State<Home> {
             }));
   }
 
-  Widget buildTextFormField(String label, String prefix,
-      TextEditingController controller, Function f) {
+  Widget buildTextFormField(TextEditingController controller, Function f) {
     return TextField(
       onChanged: (value) => f(value),
       controller: controller,
       decoration: InputDecoration(
-          labelText: label,
-          labelStyle: const TextStyle(color: Colors.amber),
-          border: const OutlineInputBorder(),
-          prefixText: "$prefix "),
-      style: const TextStyle(color: Colors.amber, fontSize: 25.0),
+        border: const OutlineInputBorder(),
+        focusedBorder: OutlineInputBorder(
+          borderSide: const BorderSide(color: Colors.amber, width: 2.0),
+        ),
+      ),
+      style: const TextStyle(color: Colors.amber),
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+    );
+  }
+
+  Widget buildSelectFormField(List<String> valores, int index, Function f,
+      TextEditingController controller) {
+    return DropdownMenu<String>(
+      initialSelection: valores[index],
+      label: const Text('Moeda'),
+      controller: controller,
+      onSelected: (String? moeda) {
+        f(moeda);
+      },
+      dropdownMenuEntries: valores.map<DropdownMenuEntry<String>>((valor) {
+        return DropdownMenuEntry<String>(
+          value: valor,
+          label: valor,
+          style: MenuItemButton.styleFrom(
+            foregroundColor: Colors.amber,
+          ),
+        );
+      }).toList(),
     );
   }
 }
