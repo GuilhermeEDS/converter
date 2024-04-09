@@ -1,6 +1,4 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'dart:async';
 import 'dart:convert';
@@ -112,74 +110,108 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-            title: const Text("\$ Conversor de Moedas \$"),
-            centerTitle: true,
-            backgroundColor: Colors.amber),
-        body: FutureBuilder<Map>(
-            future: getData(),
-            builder: (context, snapshot) {
-              switch (snapshot.connectionState) {
-                case ConnectionState.none:
-                case ConnectionState.active:
-                case ConnectionState.waiting:
-                  return const Center(
-                      child: Text(
-                    "Carregando dados...",
-                    style: TextStyle(color: Colors.amber, fontSize: 25.0),
-                    textAlign: TextAlign.center,
-                  ));
-                default:
-                  if (snapshot.hasError) {
-                    return const Center(
-                        child: Text(
-                      "Erro ao carregar dados...",
-                      style: TextStyle(color: Colors.amber, fontSize: 25.0),
-                      textAlign: TextAlign.center,
-                    ));
-                  } else {
-                    list = snapshot.data!["results"]["currencies"];
-                    moeda2 = list[nomeMoeda2]["buy"];
+    List<Tab> tabs = <Tab>[
+      Tab(
+        child: telaConversao(),
+      ),
+      Tab(
+          child: Text(
+        'First Tab',
+        style: Theme.of(context).textTheme.headlineSmall,
+      )),
+      Tab(
+        child: Text(
+          'Second Tab',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+      ),
+    ];
 
-                    return SingleChildScrollView(
-                      padding: const EdgeInsets.all(10.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          const Icon(Icons.monetization_on,
-                              size: 150.0, color: Colors.amber),
-                          Row(children: [
-                            Padding(
-                              padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
-                              child: buildSelectFormField(valores, 0,
-                                  _nomeMoeda1Change, nomeMoeda1Controller),
-                            ),
-                            Expanded(
+    return DefaultTabController(
+        length: tabs.length,
+        child: Builder(builder: (BuildContext context) {
+          final TabController tabController = DefaultTabController.of(context);
+          tabController.addListener(() {
+            if (!tabController.indexIsChanging) {}
+          });
+          return Scaffold(
+            appBar: AppBar(
+              bottom: TabBar(
+                tabs: tabs,
+              ),
+            ),
+            body: TabBarView(
+              children: tabs.map((Tab tab) {
+                return Center(child: tab.child);
+              }).toList(),
+            ),
+          );
+        }));
+  }
+
+  Widget telaConversao() {
+    return FutureBuilder<Map>(
+        future: getData(),
+        builder: (context, snapshot) {
+          switch (snapshot.connectionState) {
+            case ConnectionState.none:
+            case ConnectionState.active:
+            case ConnectionState.waiting:
+              return const Center(
+                  child: Text(
+                "Carregando dados...",
+                style: TextStyle(color: Colors.amber, fontSize: 25.0),
+                textAlign: TextAlign.center,
+              ));
+            default:
+              if (snapshot.hasError) {
+                return const Center(
+                    child: Text(
+                  "Erro ao carregar dados...",
+                  style: TextStyle(color: Colors.amber, fontSize: 25.0),
+                  textAlign: TextAlign.center,
+                ));
+              } else {
+                list = snapshot.data!["results"]["currencies"];
+                moeda2 = list[nomeMoeda2]["buy"];
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(10.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      const Icon(Icons.monetization_on,
+                          size: 150.0, color: Colors.amber),
+                      Row(children: [
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
+                          child: buildSelectFormField(valores, 0,
+                              _nomeMoeda1Change, nomeMoeda1Controller),
+                        ),
+                        Expanded(
+                          child: buildTextFormField(
+                              moeda1Controller, _moeda1Change),
+                        ),
+                      ]),
+                      const Divider(),
+                      Row(
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
+                            child: buildSelectFormField(valores, 1,
+                                _nomeMoeda2Change, nomeMoeda2Controller),
+                          ),
+                          Expanded(
                               child: buildTextFormField(
-                                  moeda1Controller, _moeda1Change),
-                            ),
-                          ]),
-                          const Divider(),
-                          Row(
-                            children: [
-                              Padding(
-                                padding: EdgeInsets.fromLTRB(0, 0, 10, 0),
-                                child: buildSelectFormField(valores, 1,
-                                    _nomeMoeda2Change, nomeMoeda2Controller),
-                              ),
-                              Expanded(
-                                  child: buildTextFormField(
-                                      moeda2Controller, _moeda2Change)),
-                            ],
-                          )
+                                  moeda2Controller, _moeda2Change)),
                         ],
-                      ),
-                    );
-                  }
+                      )
+                    ],
+                  ),
+                );
               }
-            }));
+          }
+        });
   }
 
   Widget buildTextFormField(TextEditingController controller, Function f) {
